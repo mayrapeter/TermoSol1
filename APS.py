@@ -3,7 +3,7 @@ import math
 
 from funcoesTermosol import importa
 from funcoesTermosol import plota
-[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada.xlsx')
+[nn,N,nm,Inc,nc,F,nr,R] = importa('entradaTri.xlsx')
 
 
 #plota(N, Inc)
@@ -30,10 +30,16 @@ def getCoorNos(N, n_no):
     n_no = int(n_no)
     return (nos[n_no-1])
 
+def getNos(nm):
+    nos = []
+    for i in range(0, nm):
+        nos.append([Inc[i][0], Inc[i][1]])
+    return nos
+
 def getCoorElemento(nm, N):
     elemento = []
     for i in range(nm):
-        elemento.append([getCoorNos(N, Inc[i,0]), getCoorNos(N, Inc[i,1])])   
+        elemento.append([getCoorNos(N, Inc[i,0]), getCoorNos(N, Inc[i,1])]) 
     return elemento
 
 def Ke(coor1_elemento,coor2_elemento,E,A):
@@ -44,59 +50,126 @@ def Ke(coor1_elemento,coor2_elemento,E,A):
     l, Sen, Cos = SenCos(X1,X2,Y1,Y2)
     k = (E * A)/ l 
     #forma matriz
+    m =  np.array([-Cos, -Sen, Cos, Sen], float)
     ke = np.array([[Cos**2, Cos*Sen, -Cos**2, -Cos*Sen],[Cos*Sen, Sen*Sen, -Cos*Sen, -Sen*Sen], [-Cos**2, -Cos*Sen, Cos**2, Cos*Sen], [-Cos*Sen, -Sen*Sen, Cos*Sen, Sen*Sen]])
 
-    return (np.multiply(ke,  k))
+    return (np.multiply(ke,  k), l, m)
   
 #Programa main
 coor_elementos = getCoorElemento(nm, N)
-#cada ke para cada elemento
+nos = getNos(nm)
 
+#ke para cada elemento
 ke_g = []
 E = []
 A = []
+L = []
+m = []
+
 for i in range(0,nm):
     E.append(Inc[i,2])
     A.append(Inc[i,3])
 
+for i in range(0,nm):
+    ke_g.append(Ke(coor_elementos[i][0], coor_elementos[i][1], E[i], A[i])[0])
+    L.append(Ke(coor_elementos[i][0], coor_elementos[i][1], E[i], A[i])[1])
+    m.append(Ke(coor_elementos[i][0], coor_elementos[i][1], E[i], A[i])[2])
+    
 
-
-for i in range(0,nm - 1):
-    ke_g.append(Ke(coor_elementos[i][0], coor_elementos[i][1], E[i], A[i]))
-
-ke_g.append(Ke(coor_elementos[0][0], coor_elementos[0][1], E[nm - 1], A[nm - 1]))
-
-
-print(ke_g)
 g_liber = 2
 Kg = np.zeros([nm*g_liber, nm*g_liber])
-for i in range(0, Kg.shape[0]-len(ke_g)):    
-    for j in range(0, len(ke_g)):
-        Kg[i:i+4, i:i+4] += ke_g[j]
+for i in range(0, nm):
+    if (nos[i][0] == 1):
+        g1 = 1
+        g2 = 2
+    else:
+        g2 = int(nos[i][0] * 2)
+        g1 = int(g2 - 1)
+    if (nos[i][1] == 1):
+        g3 = 1
+        g4 = 2
+    else:
+        g4 = int(nos[i][1] * 2)
+        g3 = int(g4 - 1)
+    Kg[g1-1:g2, g1-1:g2] += ke_g[i][0:2,0:2]
+    Kg[g1-1:g2, g3-1:g4] += ke_g[i][0:2,2:4]
+    Kg[g3-1:g4, g1-1:g2] += ke_g[i][2:4,0:2]
+    Kg[g3-1:g4, g3-1:g4] += ke_g[i][2:4,2:4]
+    
 
 #montagem de vetor de carga global
 
 Pg = F
 
 #aplicar condicoes de contorno
+
+i = 0
 for each in R:
-    Kg = np.delete(Kg, int(each[0]), 0) 
-    Kg = np.delete(Kg, int(each[0]), 1) 
-#print(Kg)
+    index = int(each[0])-i
+    Kg = np.delete(Kg, index, 0) 
+    Kg = np.delete(Kg, index, 1) 
+    i+=1
 #solucao de sistemas de equação (solucao.py)
+
+####        FAZER A MULTIPLICAÇÃO Kg * Pg = results (apagar results hard coded)
 
 #determinaçao das reacoes de apoio estrutural/ deformacao e tensao do elemento
     
+#deslocamentos nodais a serem calculados são os não excluidos, os excluidos são zero
+not_deleted = []
+#matriz do deslocamento nodal (results)
+results = [-9.52e-7, 1.6e-6, -4e-6]
+for i in range(0, nn*2):
+    if (i not in R):
+        not_deleted.append(i)
+        
+U = np.zeros([nn*2])
+i = 0
+for each in not_deleted:
+    U[each] = results[i]
+    i += 1
+#matriz completa dos deslocamentos nodais = U
+#o calculo das forças de apoio (multiplicação de Kg por U) com os resultados aonde foram apagados
+####    FAZER ESSA MULTIPLICAÇÃO E APAGAR O Re HARD CODED
+#Kg * U = Re
+Re = [1, 2, 3, 4, 5, 6] #escrito so pra testar se pega os indices na hora de separar
+
+reactions = []
+for each in R:
+    index = int(each[0])
+    reactions.append(Re[index])
+
+#calcular deformação
+#A deformação específica pode ser calculada a partir dos deslocamentos nodais do elemento de barra. 
+#def = (1/L)[-1 1][desl_no1 desl_no2] = (1/L)(desl_no2 - desl_no1)
+
+deformation = []
+tensoes = []
+forcas_int = []
+
+for i in range(0, nm):
+    no1 = int(nos[i][0])
+    no2 = int(nos[i][1])
+    if (no1 == 1):
+        g1 = 1
+        g2 = 2
+    else:
+        g2 = int(no1 * 2)
+        g1 = int(g2 - 1)
+    if (no2 == 1):
+        g3 = 1
+        g4 = 2
+    else:
+        g4 = int(no2 * 2)
+        g3 = int(g4 - 1)
+    graus = [g1-1, g2-1, g3-1, g4-1]
+    desl_g = []
+    for each in graus:
+        desl_g.append(U[each])
+    deformation.append(np.matmul(m[i], desl_g) / L[i]) 
+    tensoes.append(deformation[i]*E[i])
+    forcas_int.append(tensoes[i]*A[i])
 
 
-
-
-
-
-
-# from funcoesTermosol import plota
-# plota(N,Inc)
-
-
-# from funcoesTermosol import geraSaida
-# geraSaida(nome,Ft,Ut,Epsi,Fi,Ti)
+from funcoesTermosol import geraSaida
+geraSaida("nome",reactions,U,deformation,forcas_int,tensoes)
