@@ -3,7 +3,7 @@ import math
 
 from funcoesTermosol import importa
 from funcoesTermosol import plota
-[nn,N,nm,Inc,nc,F,nr,R] = importa('entradaTri.xlsx')
+[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada.xlsx')
 
 
 #plota(N, Inc)
@@ -77,7 +77,7 @@ for i in range(0,nm):
     
 
 g_liber = 2
-Kg = np.zeros([nm*g_liber, nm*g_liber])
+Kg = np.zeros([nn*g_liber, nn*g_liber])
 for i in range(0, nm):
     if (nos[i][0] == 1):
         g1 = 1
@@ -103,22 +103,46 @@ Pg = F
 
 #aplicar condicoes de contorno
 
+Kg2 = Kg
+
 i = 0
 for each in R:
     index = int(each[0])-i
     Kg = np.delete(Kg, index, 0) 
     Kg = np.delete(Kg, index, 1) 
+    Pg = np.delete(Pg, index, 0)
     i+=1
 #solucao de sistemas de equação (solucao.py)
 
-####        FAZER A MULTIPLICAÇÃO Kg * Pg = results (apagar results hard coded)
+condicao = True
+results = [0] * len(Pg)
+
+print(len(results))
+
+while condicao:
+    for i in range(0,len(Kg)):
+        sub = 0
+        for j in range(0, len(Kg)):
+            if i != j:
+                sub -= Kg[i][j] * results[j]
+
+        new_u = (Pg[i] + sub)/Kg[i][i]
+
+        if new_u != 0:
+
+            erro = abs((new_u - results[i])/new_u)
+
+            if erro < 1e-10:
+                condicao = False
+                break
+
+            results[i] = new_u
 
 #determinaçao das reacoes de apoio estrutural/ deformacao e tensao do elemento
     
 #deslocamentos nodais a serem calculados são os não excluidos, os excluidos são zero
 not_deleted = []
 #matriz do deslocamento nodal (results)
-results = [-9.52e-7, 1.6e-6, -4e-6]
 for i in range(0, nn*2):
     if (i not in R):
         not_deleted.append(i)
@@ -128,16 +152,18 @@ i = 0
 for each in not_deleted:
     U[each] = results[i]
     i += 1
+
 #matriz completa dos deslocamentos nodais = U
 #o calculo das forças de apoio (multiplicação de Kg por U) com os resultados aonde foram apagados
-####    FAZER ESSA MULTIPLICAÇÃO E APAGAR O Re HARD CODED
 #Kg * U = Re
-Re = [1, 2, 3, 4, 5, 6] #escrito so pra testar se pega os indices na hora de separar
 
-reactions = []
-for each in R:
-    index = int(each[0])
-    reactions.append(Re[index])
+Re = Kg2.dot(U)
+
+
+#reactions = []
+#for each in R:
+#    index = int(each[0])
+#    reactions.append(Re[index])
 
 #calcular deformação
 #A deformação específica pode ser calculada a partir dos deslocamentos nodais do elemento de barra. 
@@ -172,4 +198,4 @@ for i in range(0, nm):
 
 
 from funcoesTermosol import geraSaida
-geraSaida("nome",reactions,U,deformation,forcas_int,tensoes)
+geraSaida("nome",Re,U,deformation,forcas_int,tensoes)
