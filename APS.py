@@ -3,7 +3,7 @@ import math
 
 from funcoesTermosol import importa
 from funcoesTermosol import plota
-[nn,N,nm,Inc,nc,F,nr,R] = importa('entrada.xlsx')
+[nn,N,nm,Inc,nc,F,nr,R] = importa('grupo2.xlsx')
 
 
 #plota(N, Inc)
@@ -152,9 +152,13 @@ for each in not_deleted:
 #determinaçao das reacoes de apoio estrutural/ deformacao e tensao do elemento
 Re = Kg2.dot(U)
 
+reactions = []
+for each in R:
+    index = int(each[0])
+    reactions.append(Re[index])
+
 #calcular deformação
 #A deformação específica pode ser calculada a partir dos deslocamentos nodais do elemento de barra. 
-#def = (1/L)[-1 1][desl_no1 desl_no2] = (1/L)(desl_no2 - desl_no1)
 deformation = []
 tensoes = []
 forcas_int = []
@@ -181,7 +185,8 @@ for i in range(0, nm):
     deformation.append(np.matmul(m[i], desl_g) / L[i]) 
     tensoes.append(deformation[i]*E[i])
     forcas_int.append(tensoes[i]*A[i])
+    
 
 
 from funcoesTermosol import geraSaida
-geraSaida("nome",Re,U,deformation,forcas_int,tensoes)
+geraSaida("nome",reactions,U,deformation,forcas_int,tensoes)
