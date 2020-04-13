@@ -187,6 +187,6 @@ for i in range(0, nm):
     forcas_int.append(tensoes[i]*A[i])
     
 
-
+print(len(deformation))
 from funcoesTermosol import geraSaida
-geraSaida("nome",reactions,U,deformation,forcas_int,tensoes)
+geraSaida(reactions,U,deformation,forcas_int,tensoes)
