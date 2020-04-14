@@ -6,7 +6,7 @@ from funcoesTermosol import importa
 from funcoesTermosol import plota
 [nn, N, nm, Inc, nc, F, nr, R] = importa('entrada.xlsx')
 
-plota(N, Inc)
+# plota(N, Inc)
 # numero de nos [nn]
 # matriz dos nos [N]
 # numero de membros [nm]
@@ -194,5 +194,54 @@ for i in range(0, nm):
     forcas_int.append(tensoes[i]*A[i])
 
 
-print(len(deformation))
+# print(len(deformation))
+
+reactions = np.vstack(np.array(reactions))
+U = np.vstack(np.array(U))
+deformation = np.vstack(np.array(deformation))
+forcas_int = np.vstack(np.array(forcas_int))
+tensoes = np.vstack(np.array(tensoes))
+
+# saida
 geraSaida(reactions, U, deformation, forcas_int, tensoes)
+
+
+# funções para verificar se a ponte escolhida está dentro dos limítes propostos
+
+def peso(nm, Inc, L):
+    area = []
+    for i in range(0, nm):
+        area.append(Inc[i][3])
+
+    volume = 0
+    for i in range(len(L)):
+        volume += area[i] * L[i]
+
+    return 848 * volume * 1000
+
+
+# print(peso(nm, Inc, L))
+
+for each in U:
+    each = abs(each)
+    if each > 0.02:
+        print("Deslocou mais do que deveria ")
+
+cont = 0
+
+for each in deformation:
+    each = abs(each) * 100
+    cont += 1
+    if each > 5:
+        print("Passou do limite de deformaçao")
+
+cont = 0
+for i in tensoes:
+    i = abs(i)
+    cont += 1
+    # print(i)
+    # print(cont)
+    if i > 18E6:
+        print("Passou da tensao de ruptura")
+        # print(cont)
+        print(" ")
